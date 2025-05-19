@@ -1,0 +1,121 @@
+
+SELECT * FROM starbucks_stores
+WHERE store_id IS NULL
+   OR city IS NULL
+   OR state IS NULL
+   OR country IS NULL;
+
+
+SELECT store_id, COUNT(*) 
+FROM starbucks_stores
+GROUP BY store_id
+HAVING COUNT(*) > 1;
+
+SELECT DISTINCT country FROM starbucks_stores;
+
+UPDATE starbucks_stores
+SET country = 'USA'
+WHERE country IN ('Usa', 'us', 'United States');
+
+SELECT * FROM menu
+WHERE product_id IS NULL
+   OR product_name IS NULL
+   OR category IS NULL
+   OR price IS NULL;
+
+UPDATE menu
+SET product_name = TRIM(LOWER(product_name));
+
+
+
+SELECT DISTINCT store_id
+FROM starbucks_sales
+WHERE store_id NOT IN (SELECT store_id FROM starbucks_stores);
+
+SELECT DISTINCT product_id
+FROM starbucks_sales
+WHERE product_id NOT IN (SELECT product_id FROM menu);
+
+DELETE FROM starbucks_sales
+WHERE store_id NOT IN (SELECT store_id FROM starbucks_stores)
+   OR product_id NOT IN (SELECT product_id FROM menu);
+
+
+SELECT * FROM starbucks_sales
+WHERE total_sale_amount > 500;
+   
+SELECT DISTINCT sale_date FROM starbucks_sales
+ORDER BY sale_date;
+
+DELETE FROM starbucks_sales
+WHERE sale_date IS NULL OR sale_date > CURRENT_DATE;
+
+
+--------------KPIS-------------------------------------------------------------------------------
+
+SELECT SUM(total_sale_amount) AS total_revenue
+FROM starbucks_sales;
+
+SELECT SUM(quantity_sold) AS total_units_sold
+FROM starbucks_sales;
+
+
+SELECT COUNT(*) AS total_transactions
+FROM starbucks_sales;
+
+----------------Time-Based Aggregation-------------------------------------------------------------
+(monthly sales)
+SELECT
+  DATE_TRUNC('month', sale_date) AS sale_month,
+  SUM(total_sale_amount) AS monthly_revenue
+FROM starbucks_sales
+GROUP BY sale_month
+ORDER BY sale_month;
+
+(daily revenue)
+SELECT
+  sale_date,
+  ROUND(AVG(total_sale_amount), 2) AS avg_daily_revenue
+FROM starbucks_sales
+GROUP BY sale_date
+ORDER BY sale_date;
+
+(Top 5 Stores by Revenue)
+SELECT
+  ss.store_id,
+  st.city,
+  st.state,
+  SUM(ss.total_sale_amount) AS revenue
+FROM starbucks_sales ss
+JOIN starbucks_stores st ON ss.store_id = st.store_id
+GROUP BY ss.store_id, st.city, st.state
+ORDER BY revenue DESC
+LIMIT 5;
+
+(Average Sale per Store)
+SELECT
+  store_id,
+  ROUND(AVG(total_sale_amount), 2) AS avg_sale_amount
+FROM starbucks_sales
+GROUP BY store_id;
+
+------------------ Product Insights-----------------------------------------
+(Most Sold Products)
+SELECT
+  sm.product_name,
+  SUM(ss.quantity_sold) AS total_units
+FROM starbucks_sales ss
+JOIN menu sm ON ss.product_id = sm.product_id
+GROUP BY sm.product_name
+ORDER BY total_units DESC
+LIMIT 10;
+
+
+(Revenue by Category)
+SELECT
+  sm.category,
+  SUM(ss.total_sale_amount) AS total_revenue
+FROM starbucks_sales ss
+JOIN menu sm ON ss.product_id = sm.product_id
+GROUP BY sm.category
+ORDER BY total_revenue DESC;
